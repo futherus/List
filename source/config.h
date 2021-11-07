@@ -3,6 +3,4 @@
 
 typedef double elem_t;
 
-const char LIST_DUMPFILE[] = "list_dump.txt";
-
 #endif // LIST_CONFIG_H
