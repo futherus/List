@@ -79,6 +79,7 @@ static void (*PRINT_ELEM)(FILE* dumpstream, const elem_t* elem) = nullptr;
 #define FREE (list->free)
 #define SIZE (list->size)
 #define CAP  (list->capacity)
+#define SRTD (list->sorted)
 
 static void list_graph_dump_(List* list)
 {
@@ -147,7 +148,8 @@ void list_dump(List* list, const char msg[], indx_t err_pos)
     else
         PRINT("<span class = \"error\"> %s (%ld) </span>\n", msg, err_pos);
 
-    PRINT("tail: %5ld\n" "head: %5ld\n" "size: %5ld\n" "cap:  %5ld\n" "free: %5ld\n\n", TAIL, HEAD, SIZE, CAP, FREE);
+    PRINT("tail: %5ld\n" "head: %5ld\n" "free: %5ld\n" "size: %5ld\n" "cap:  %5ld\n" "sorted: %3d\n\n",
+          TAIL, HEAD, FREE, SIZE, CAP, SRTD);
 
     PRINT("indx: ");
     for(indx_t iter = 0; iter < CAP; iter++)
@@ -204,6 +206,8 @@ void list_dump(List* list, const char msg[], indx_t err_pos)
 
     PRINT("<span class = \"title\">\n--------------------------------------------------------------------------------------------------------------------------------\n</span>");
 }
+
+#undef PRINT
 
 static void close_dumpfile_()
 {

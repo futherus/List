@@ -14,9 +14,10 @@ struct Node
 
 struct List 
 {
-    indx_t capacity = 0; ///< amount of elements that can be added
+    indx_t capacity = 0;
     indx_t size     = 0;
     indx_t free     = 0;
+    bool   sorted   = 0;
 
     elem_t* data_arr = nullptr;
 
@@ -35,6 +36,7 @@ enum List_err
     LIST_FREE_MISS    = -10,
     LIST_FREE_CYCLE   = -11,
     LIST_FREE_BADINDX = -12,
+    LIST_ACCESS_FREE  = -13,
 };
 
 indx_t list_init(List* list, elem_t* data = nullptr, indx_t data_cap = 0);
@@ -54,5 +56,7 @@ indx_t list_insert(List* list, indx_t pos, elem_t elem);
 indx_t list_extract(List* list, indx_t pos, elem_t* elem);
 
 indx_t list_defragmentation(List* list);
+
+indx_t list_find(List* list, indx_t lpos);
 
 #endif // LIST_H

@@ -12,6 +12,7 @@
 #define SIZE (list->size)
 #define CAP  (list->capacity)
 #define FREE (list->free)
+#define SRTD (list->sorted)
 
 static indx_t MIN_LIST_CAP = 8;
 static indx_t LIST_CAP_MLTPLR = 2;
@@ -105,13 +106,17 @@ static indx_t list_resize_(List* list, indx_t new_cap)
 static inline indx_t list_insert_(List* list, indx_t pos, elem_t elem)
 {
     ASSERT_POS(list, LIST_NULLPTR, pos);
-    ASSERT_POS(pos >= -1, LIST_BAD_INDX, pos);
+    ASSERT_POS(pos >= -1 && pos < CAP, LIST_BAD_INDX, pos);
+    ASSERT_POS(NODS[pos].prev != INVLD_INDX, LIST_ACCESS_FREE, pos);
     indx_t err = list_verify_(list);
     if(err)
         return err;
     
     if(FREE == -1)
         ASSERT_POS(list_resize_(list, CAP * LIST_CAP_MLTPLR) == 0, LIST_BAD_ALLOC, pos);            
+
+    if(pos != HEAD)
+        SRTD = false;
 
     indx_t free = FREE;
     FREE = NODS[FREE].next;
@@ -132,10 +137,14 @@ static inline indx_t list_insert_(List* list, indx_t pos, elem_t elem)
 static inline indx_t list_extract_(List* list, indx_t pos, elem_t* elem)
 {
     ASSERT_POS(list && elem, LIST_NULLPTR, pos);
-    ASSERT_POS(pos >= 0, LIST_BAD_INDX, pos);
+    ASSERT_POS(pos >= 0 && pos < CAP, LIST_BAD_INDX, pos);
+    ASSERT_POS(NODS[pos].prev != INVLD_INDX, LIST_ACCESS_FREE, pos);
     indx_t err = list_verify_(list);
     if(err)
         return err;
+
+    if(pos != HEAD && pos != TAIL)
+        SRTD = false;
 
     *elem = DATA[pos];
 
@@ -147,6 +156,7 @@ static inline indx_t list_extract_(List* list, indx_t pos, elem_t* elem)
     FREE = pos;
 
     SIZE--;
+    SRTD = false;
 
     return pos;
 }
@@ -177,6 +187,7 @@ indx_t list_init(List* list, elem_t* data, indx_t cap)
     TAIL = -1;
     HEAD = -1;
     SIZE =  0;
+    SRTD =  1;
 
     return LIST_NOERR;
 }
@@ -253,7 +264,7 @@ indx_t list_defragmentation(List* list)
     if(err)
         return err;
 
-    indx_t pos = TAIL;
+    indx_t pos = HEAD;
     for(indx_t iter = 0; iter < SIZE; iter++)
     {
         assert(pos >= 0);
@@ -261,7 +272,7 @@ indx_t list_defragmentation(List* list)
         if(pos != iter)
             list_node_swap_(list, iter, pos);
 
-        pos = NODS[iter].next;
+        pos = NODS[iter].prev;
     }
 
     FREE = SIZE;
@@ -271,7 +282,23 @@ indx_t list_defragmentation(List* list)
     NODS[CAP - 1].next = -1;
 
     err = list_verify_(list);
+
+    SRTD = true;
     return err;
+}
+
+indx_t list_find(List* list, indx_t lpos)
+{
+    ASSERT(lpos >= 0 && lpos < SIZE, LIST_BAD_INDX);
+
+    if(SRTD)
+        return TAIL + lpos;
+    
+    indx_t pos = TAIL;
+    for(indx_t iter = 0; iter < lpos; iter++)
+        pos = NODS[pos].next;
+
+    return pos;
 }
 
 indx_t list_insert(List* list, indx_t pos, elem_t elem)
