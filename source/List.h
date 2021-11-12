@@ -8,8 +8,8 @@ const indx_t INVLD_INDX = -666;
 
 struct Node
 {
-    indx_t prev = 0;
     indx_t next = 0;
+    indx_t prev = 0;
 };
 
 struct List 
@@ -37,26 +37,23 @@ enum List_err
     LIST_FREE_CYCLE   = -11,
     LIST_FREE_BADINDX = -12,
     LIST_ACCESS_FREE  = -13,
+    LIST_REINIT       = -14,
+    LIST_NOT_INIT     = -15,
 };
 
-indx_t list_init(List* list, elem_t* data = nullptr, indx_t data_cap = 0);
-
-indx_t list_dstr(List* list);
+indx_t list_init      (List* list, elem_t* data = nullptr, indx_t data_cap = 0);
+indx_t list_dstr      (List* list);
 
 indx_t list_push_front(List* list, elem_t  elem);
+indx_t list_pop_front (List* list, elem_t* elem);
 
-indx_t list_push_back(List* list, elem_t  elem);
+indx_t list_push_back (List* list, elem_t  elem);
+indx_t list_pop_back  (List* list, elem_t* elem);
 
-indx_t list_pop_front(List* list, elem_t* elem);
+indx_t list_insert    (List* list, indx_t pos, elem_t  elem);
+indx_t list_extract   (List* list, indx_t pos, elem_t* elem);
 
-indx_t list_pop_back(List* list, elem_t* elem);
-
-indx_t list_insert(List* list, indx_t pos, elem_t elem);
-
-indx_t list_extract(List* list, indx_t pos, elem_t* elem);
-
+indx_t list_find           (List* list, indx_t lpos);
 indx_t list_defragmentation(List* list);
-
-indx_t list_find(List* list, indx_t lpos);
 
 #endif // LIST_H

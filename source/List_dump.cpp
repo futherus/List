@@ -7,13 +7,11 @@
 #include <string.h>
 #include <stdlib.h>
 
-static const char GRAPHVIZ_OUTRO[] = "}\n";
-
 static const int GRAPHVIZ_NAME_SIZE = 300;
 
 static long DUMP_ITERATION = 0;
 static const char GRAPHVIZ_PNG_NAME[] = "list_dump/graphviz_dump";
-static const char LIST_DUMPFILE[] = "list_dump.html";
+static const char LIST_DUMPFILE[]     = "list_dump.html";
 
 static char* graphviz_png_()
 {
@@ -22,6 +20,7 @@ static char* graphviz_png_()
 
     return filename;
 }
+
 static const char GRAPHVIZ_INTRO[] =
 R"(
 digraph G{
@@ -40,6 +39,8 @@ digraph G{
         rank = max; node1[style = invis, height = 0.2];
     }
 )";
+
+static const char GRAPHVIZ_OUTRO[] = "}\n";
 
 static const char HTML_INTRO[] =
 R"(
@@ -74,8 +75,8 @@ static void (*PRINT_ELEM)(FILE* dumpstream, const elem_t* elem) = nullptr;
 #define DATA (list->data_arr)
 #define NODS (list->node_arr)
 #define FRES (list->free_arr)
-#define TAIL (NODS[-1].next)
-#define HEAD (NODS[-1].prev)
+#define TAIL (NODS[-1].prev)
+#define HEAD (NODS[-1].next)
 #define FREE (list->free)
 #define SIZE (list->size)
 #define CAP  (list->capacity)
@@ -92,7 +93,7 @@ static void list_graph_dump_(List* list)
           &NODS[-1], &NODS[-1]);
 
     PRINT("{rank = same;\n"
-          "label%p[label = \"header \n\n tail: %ld \n head: %ld \n free: %ld\", color = \"red\"];\n",
+          "label%p[label = \"header \n\n head: %ld \n tail: %ld \n free: %ld\", color = \"red\"];\n",
            &NODS[-1], NODS[-1].next, NODS[-1].prev, FREE);
 
     for(indx_t iter = 0; iter < CAP; iter++)
@@ -131,6 +132,14 @@ static void list_graph_dump_(List* list)
     system(sys_cmd);
 }
 
+static const char DATA_IS_NULL_MSG[] = "\n                                                                                            "
+                                       "\n  DDDDDD      A    TTTTTTTTT    A         IIIII   SSSSS     N    N  U     U  L      L       "
+                                       "\n  D     D    A A       T       A A          I    S          NN   N  U     U  L      L       "
+                                       "\n  D     D   A   A      T      A   A         I     SSSS      N N  N  U     U  L      L       "
+                                       "\n  D     D  AAAAAAA     T     AAAAAAA        I         S     N  N N  U     U  L      L       "
+                                       "\n  DDDDDD  A       A    T    A       A     IIIII  SSSSS      N   NN   UUUUU   LLLLLL LLLLLL  "
+                                       "\n                                                                                            ";
+
 void list_dump(List* list, const char msg[], indx_t err_pos)
 {
     DUMP_ITERATION++;
@@ -139,7 +148,7 @@ void list_dump(List* list, const char msg[], indx_t err_pos)
     if(stream == nullptr)
         return;
 
-    PRINT("<span class = \"title\">--------------------------------------------------------------------------------------------------------------------------------</span>\n");
+    PRINT("<span class = \"title\">----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------</span>\n");
     
     if(err_pos == DEFLT_INDX)
         PRINT("<span class = \"title\"> %s </span>\n", msg);
@@ -148,8 +157,15 @@ void list_dump(List* list, const char msg[], indx_t err_pos)
     else
         PRINT("<span class = \"error\"> %s (%ld) </span>\n", msg, err_pos);
 
+    if(!NODS || !DATA)
+    {
+        PRINT("<span class = \"error\">%s\n</span>", DATA_IS_NULL_MSG);
+        PRINT("<span class = \"title\">\n----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n</span>");
+        return;
+    }
+
     PRINT("tail: %5ld\n" "head: %5ld\n" "free: %5ld\n" "size: %5ld\n" "cap:  %5ld\n" "sorted: %3d\n\n",
-          TAIL, HEAD, FREE, SIZE, CAP, SRTD);
+           TAIL, HEAD, FREE, SIZE, CAP, SRTD);
 
     PRINT("indx: ");
     for(indx_t iter = 0; iter < CAP; iter++)
@@ -159,23 +175,23 @@ void list_dump(List* list, const char msg[], indx_t err_pos)
 
     PRINT("data: ");
     for(indx_t iter = 0; iter < CAP; iter++)
-        PRINT("%5lg|", list->data_arr[iter]);
+        PRINT("%5lg|", DATA[iter]);
 
     PRINT("\n");
 
     PRINT("next: ");
     for(indx_t iter = 0; iter < CAP; iter++)
-        PRINT("%5ld|", list->node_arr[iter].next);
+        PRINT("%5ld|", NODS[iter].next);
 
     PRINT("\n");
 
     PRINT("prev: ");
     for(indx_t iter = 0; iter < CAP; iter++)
-        PRINT("%5ld|", list->node_arr[iter].prev);
+        PRINT("%5ld|", NODS[iter].prev);
 
     PRINT("\n\n");
     
-    indx_t cur_indx = TAIL;
+    indx_t cur_indx = HEAD;
     PRINT(">>>>: ");
     for(indx_t iter = 0; iter < CAP; iter++)
     {
@@ -188,7 +204,7 @@ void list_dump(List* list, const char msg[], indx_t err_pos)
 
     PRINT("\n");
 
-    cur_indx = HEAD;
+    cur_indx = TAIL;
     PRINT("<<<<: ");
     for(indx_t iter = 0; iter < CAP; iter++)
     {
@@ -204,7 +220,7 @@ void list_dump(List* list, const char msg[], indx_t err_pos)
 
     PRINT(R"(<img src = ")" "%s" R"(" alt = "Graphical dump" height = 400>)", graphviz_png_());
 
-    PRINT("<span class = \"title\">\n--------------------------------------------------------------------------------------------------------------------------------\n</span>");
+    PRINT("<span class = \"title\">\n----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n</span>");
 }
 
 #undef PRINT

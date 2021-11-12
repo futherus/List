@@ -7,8 +7,8 @@
 
 #define DATA (list->data_arr)
 #define NODS (list->node_arr)
-#define TAIL (NODS[-1].next)
-#define HEAD (NODS[-1].prev)
+#define TAIL (NODS[-1].prev)
+#define HEAD (NODS[-1].next)
 #define SIZE (list->size)
 #define CAP  (list->capacity)
 #define FREE (list->free)
@@ -31,14 +31,24 @@ static indx_t LIST_CAP_MLTPLR = 2;
         return (indx_t) (ERROR);                \
     }                                           \
 
+#define VERIFY(LIST)                            \
+    {                                           \
+        indx_t err = list_verify_(LIST);        \
+        if(err)                                 \
+            return err;                         \
+    }                                           \
+
 static indx_t list_verify_(List* list)
 {
+    ASSERT(list, LIST_NULLPTR);
+    ASSERT(DATA && NODS, LIST_NOT_INIT);
+
     indx_t pos = TAIL;
     for(indx_t iter = 0; iter < 2 * CAP; iter++)
     {
         ASSERT_POS(pos >= -1 && pos < CAP, LIST_BAD_INDX, pos);
         
-        ASSERT_POS(NODS[NODS[pos].next].prev == pos, LIST_RIP, pos);
+        ASSERT_POS(NODS[NODS[pos].prev].next == pos, LIST_RIP, pos);
 
         if(pos == -1)
         {
@@ -49,7 +59,7 @@ static indx_t list_verify_(List* list)
 
         ASSERT_POS(iter <= SIZE, LIST_CYCLE, pos);
 
-        pos = NODS[pos].next;
+        pos = NODS[pos].prev;
     }
 
     pos = FREE;
@@ -83,7 +93,7 @@ static indx_t list_resize_(List* list, indx_t new_cap)
     if(new_cap == CAP)
         return LIST_NOERR;
 
-    NODS--;
+    NODS--;                        // shift for list header structure
     void* temp_ptr = realloc(NODS, (new_cap + 1) * sizeof(Node));
     if(!temp_ptr)
         return LIST_BAD_ALLOC;
@@ -103,19 +113,15 @@ static indx_t list_resize_(List* list, indx_t new_cap)
     return LIST_NOERR;
 }
 
-static inline indx_t list_insert_(List* list, indx_t pos, elem_t elem)
+static indx_t list_insert_(List* list, indx_t pos, elem_t elem)
 {
-    ASSERT_POS(list, LIST_NULLPTR, pos);
     ASSERT_POS(pos >= -1 && pos < CAP, LIST_BAD_INDX, pos);
-    ASSERT_POS(NODS[pos].prev != INVLD_INDX, LIST_ACCESS_FREE, pos);
-    indx_t err = list_verify_(list);
-    if(err)
-        return err;
-    
+    ASSERT_POS(NODS[pos].next != INVLD_INDX, LIST_ACCESS_FREE, pos);
+
     if(FREE == -1)
         ASSERT_POS(list_resize_(list, CAP * LIST_CAP_MLTPLR) == 0, LIST_BAD_ALLOC, pos);            
 
-    if(pos != HEAD)
+    if(pos != TAIL)
         SRTD = false;
 
     indx_t free = FREE;
@@ -134,29 +140,25 @@ static inline indx_t list_insert_(List* list, indx_t pos, elem_t elem)
     return free;
 }
 
-static inline indx_t list_extract_(List* list, indx_t pos, elem_t* elem)
+static indx_t list_extract_(List* list, indx_t pos, elem_t* elem)
 {
-    ASSERT_POS(list && elem, LIST_NULLPTR, pos);
+    ASSERT_POS(elem, LIST_NULLPTR, pos);
     ASSERT_POS(pos >= 0 && pos < CAP, LIST_BAD_INDX, pos);
-    ASSERT_POS(NODS[pos].prev != INVLD_INDX, LIST_ACCESS_FREE, pos);
-    indx_t err = list_verify_(list);
-    if(err)
-        return err;
+    ASSERT_POS(NODS[pos].next != INVLD_INDX, LIST_ACCESS_FREE, pos);
 
     if(pos != HEAD && pos != TAIL)
         SRTD = false;
 
     *elem = DATA[pos];
 
-    NODS[NODS[pos].next].prev = NODS[pos].prev;
     NODS[NODS[pos].prev].next = NODS[pos].next;
+    NODS[NODS[pos].next].prev = NODS[pos].prev;
 
     NODS[pos].next = FREE;
     NODS[pos].prev = INVLD_INDX;
     FREE = pos;
 
     SIZE--;
-    SRTD = false;
 
     return pos;
 }
@@ -176,6 +178,7 @@ static indx_t list_init_cap_(indx_t init_cap)
 indx_t list_init(List* list, elem_t* data, indx_t cap)
 {
     ASSERT(list && data, LIST_NULLPTR);
+    ASSERT(!NODS, LIST_REINIT);
 
     cap = list_init_cap_(cap);
 
@@ -194,9 +197,15 @@ indx_t list_init(List* list, elem_t* data, indx_t cap)
 
 indx_t list_dstr(List* list)
 {
-    ASSERT(list, LIST_NULLPTR);
+    VERIFY(list);
 
     free(NODS - 1); // shift for list header structure
+
+    CAP  = INVLD_INDX;
+    SIZE = INVLD_INDX;
+    FREE = INVLD_INDX;
+    DATA = nullptr;
+    NODS = nullptr;
 
     return (indx_t) LIST_NOERR;
 }
@@ -244,14 +253,14 @@ static void list_node_swap_(List* list, indx_t indx_1, indx_t indx_2)
 
     if(temp_1.prev != INVLD_INDX)
     {
-        NODS[temp_1.prev].next = indx_2;
         NODS[temp_1.next].prev = indx_2;
+        NODS[temp_1.prev].next = indx_2;
     }
 
     if(temp_2.prev != INVLD_INDX)
     {
-        NODS[temp_2.prev].next = indx_1;
         NODS[temp_2.next].prev = indx_1;
+        NODS[temp_2.prev].next = indx_1;
     }
 
     swap(&NODS[indx_1], &NODS[indx_2], sizeof(Node));
@@ -260,9 +269,7 @@ static void list_node_swap_(List* list, indx_t indx_1, indx_t indx_2)
 
 indx_t list_defragmentation(List* list)
 {
-    indx_t err = list_verify_(list);
-    if(err)
-        return err;
+    VERIFY(list);
 
     indx_t pos = HEAD;
     for(indx_t iter = 0; iter < SIZE; iter++)
@@ -272,7 +279,7 @@ indx_t list_defragmentation(List* list)
         if(pos != iter)
             list_node_swap_(list, iter, pos);
 
-        pos = NODS[iter].prev;
+        pos = NODS[iter].next;
     }
 
     FREE = SIZE;
@@ -281,20 +288,22 @@ indx_t list_defragmentation(List* list)
 
     NODS[CAP - 1].next = -1;
 
-    err = list_verify_(list);
+    VERIFY(list);
 
     SRTD = true;
-    return err;
+
+    return (indx_t) LIST_NOERR;
 }
 
 indx_t list_find(List* list, indx_t lpos)
 {
     ASSERT(lpos >= 0 && lpos < SIZE, LIST_BAD_INDX);
+    VERIFY(list);
 
     if(SRTD)
-        return TAIL + lpos;
+        return HEAD + lpos;
     
-    indx_t pos = TAIL;
+    indx_t pos = HEAD;
     for(indx_t iter = 0; iter < lpos; iter++)
         pos = NODS[pos].next;
 
@@ -303,30 +312,42 @@ indx_t list_find(List* list, indx_t lpos)
 
 indx_t list_insert(List* list, indx_t pos, elem_t elem)
 {
+    VERIFY(list);
+
     return list_insert_(list, pos, elem);
 }
 
 indx_t list_extract(List* list, indx_t pos, elem_t* elem)
 {
+    VERIFY(list);
+
     return list_extract_(list, pos, elem);
 }
 
 indx_t list_push_back(List* list, elem_t elem)
 {
-    return list_insert_(list, -1, elem);
+    VERIFY(list);
+
+    return list_insert_(list, TAIL, elem);
 }
 
 indx_t list_push_front(List* list, elem_t elem)
 {
-    return list_insert_(list, HEAD, elem);
+    VERIFY(list);
+
+    return list_insert_(list, -1, elem);
 }
 
 indx_t list_pop_back(List* list, elem_t* elem)
 {
+    VERIFY(list);
+
     return list_extract_(list, TAIL, elem);
 }
 
 indx_t list_pop_front(List* list, elem_t* elem)
 {
+    VERIFY(list);
+
     return list_extract_(list, HEAD, elem);
 }
