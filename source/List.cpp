@@ -145,6 +145,7 @@ static indx_t list_extract_(List* list, indx_t pos, elem_t* elem)
     ASSERT_POS(elem, LIST_NULLPTR, pos);
     ASSERT_POS(pos >= 0 && pos < CAP, LIST_BAD_INDX, pos);
     ASSERT_POS(NODS[pos].next != INVLD_INDX, LIST_ACCESS_FREE, pos);
+    ASSERT_POS(SIZE > 0, LIST_EMPTY, pos);
 
     if(pos != HEAD && pos != TAIL)
         SRTD = false;

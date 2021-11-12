@@ -39,6 +39,7 @@ enum List_err
     LIST_ACCESS_FREE  = -13,
     LIST_REINIT       = -14,
     LIST_NOT_INIT     = -15,
+    LIST_EMPTY        = -16,
 };
 
 indx_t list_init      (List* list, elem_t* data = nullptr, indx_t data_cap = 0);

@@ -24,11 +24,11 @@ static char* graphviz_png_()
 static const char GRAPHVIZ_INTRO[] =
 R"(
 digraph G{
-    graph [dpi = 70];
+    graph [dpi = 100];
     bgcolor = "#2F353B";
     ranksep = 1.5;
     splines = ortho;
-    edge[minlen = 3, labeldistance = 3, arrowsize = 2, penwidth = 1.5];
+    edge[minlen = 3, arrowsize = 2, penwidth = 1.5];
     node[shape = rectangle, style = "rounded, filled", height = 3,
     width = 2.3, fixedsize = true, fillcolor = "#C5D0E6", fontsize = 30,
     color = "#C5D0E6", penwidth = 3];

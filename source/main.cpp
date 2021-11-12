@@ -10,14 +10,9 @@ int main()
     list_dump_init(nullptr, nullptr);
     list_init(&list, buffer, 0);
 
-    for(indx_t iter = 0; iter < 10; iter++)
-    {
-        list_push_front(&list, -iter);
-        list_push_back(&list,   iter);
-    }
     list_push_back(&list, 77);
     list_dump(&list, "after push\n");
-    list_extract(&list, 11, &temp);
+
     for(indx_t iter = 0; iter < 10; iter++)
     {
         list_extract(&list, iter, &temp);
