@@ -27,4 +27,4 @@ $(BINDIR):
 	mkdir $(BINDIR)
 
 clean:
-	rm -rf $(addprefix $(OBJDIR), $(OBJ))
+	rm -rf $(OBJDIR) $(BINDIR)
