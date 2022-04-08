@@ -11,6 +11,8 @@ struct Node
 {
     indx_t next = 0;
     indx_t prev = 0;
+
+    elem_t data = 0;
 };
 
 struct List 
@@ -19,8 +21,6 @@ struct List
     indx_t size     = 0;
     indx_t free     = 0;
     bool   sorted   = 0;
-
-    elem_t* data_arr = nullptr;
 
     Node* node_arr = nullptr;
 };
@@ -43,7 +43,7 @@ enum List_err
     LIST_EMPTY        = -16,
 };
 
-indx_t list_init      (List* list, elem_t* data = nullptr, indx_t data_cap = 0);
+indx_t list_init      (List* list, indx_t init_cap = 0);
 indx_t list_dstr      (List* list);
 
 indx_t list_push_front(List* list, elem_t  elem);

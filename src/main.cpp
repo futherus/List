@@ -5,20 +5,19 @@
 int main()
 {
     List list = {};
-    double buffer[100] = {0};
     double temp = 0;
     list_dump_init(nullptr, nullptr);
-    list_init(&list, buffer, 0);
+    list_init(&list, 0);
 
-    list_push_back(&list, 77);
-    list_dump(&list, "after push\n");
+     list_push_back(&list, 77);
+     list_dump(&list, "after push\n");
 
     for(indx_t iter = 0; iter < 10; iter++)
     {
-        list_extract(&list, iter, &temp);
+        list_insert(&list, 0, iter);
     }
 
-    list_dump(&list, "before defragmentation");
+    list_dump(&list, "before defragmentation\n");
 
     list_defragmentation(&list);
 
@@ -26,6 +25,6 @@ int main()
 
     list_extract(&list, 1, &temp);
 
-    list_dstr(&list);
+     list_dstr(&list);
     return 0;
 }

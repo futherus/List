@@ -10,7 +10,7 @@
 static const int GRAPHVIZ_NAME_SIZE = 300;
 
 static long DUMP_ITERATION = 0;
-static const char GRAPHVIZ_PNG_NAME[] = "list_dump/graphviz_dump";
+static const char GRAPHVIZ_PNG_NAME[] = "graphviz_dump";
 static const char LIST_DUMPFILE[]     = "list_dump.html";
 
 static char* graphviz_png_()
@@ -72,7 +72,6 @@ static void (*PRINT_ELEM)(FILE* dumpstream, const elem_t* elem) = nullptr;
 
 #define PRINT(format, ...) fprintf(stream, format, ##__VA_ARGS__)
 
-#define DATA (list->data_arr)
 #define NODS (list->node_arr)
 #define FRES (list->free_arr)
 #define TAIL (NODS[-1].prev)
@@ -84,7 +83,7 @@ static void (*PRINT_ELEM)(FILE* dumpstream, const elem_t* elem) = nullptr;
 
 static void list_graph_dump_(List* list)
 {
-    FILE* stream = fopen("list_dump/graphviz_temp.txt", "w");
+    FILE* stream = fopen("graphviz_temp.txt", "w");
     
     PRINT("%s", GRAPHVIZ_INTRO);
 
@@ -99,7 +98,7 @@ static void list_graph_dump_(List* list)
     for(indx_t iter = 0; iter < CAP; iter++)
     {
         PRINT("label%p[label = \"idx: %ld \n\n %lg \n nxt: %ld \n prv: %ld\"];\n",
-               &NODS[iter], iter, DATA[iter], NODS[iter].next, NODS[iter].prev);
+               &NODS[iter], iter, NODS[iter].data, NODS[iter].next, NODS[iter].prev);
 
         PRINT("label%p -> label%p[weight = 5, style = invis];\n", &NODS[iter - 1], &NODS[iter]);
     }
@@ -126,7 +125,7 @@ static void list_graph_dump_(List* list)
 
     fclose(stream);
 
-    char sys_cmd[GRAPHVIZ_NAME_SIZE] = "dot list_dump/graphviz_temp.txt -q -Tpng -o ";
+    char sys_cmd[GRAPHVIZ_NAME_SIZE] = "dot graphviz_temp.txt -q -Tpng -o ";
     strcat(sys_cmd, graphviz_png_());
 
     system(sys_cmd);
@@ -157,7 +156,7 @@ void list_dump(List* list, const char msg[], indx_t err_pos)
     else
         PRINT("<span class = \"error\"> %s (%ld) </span>\n", msg, err_pos);
 
-    if(!NODS || !DATA)
+    if(!NODS)
     {
         PRINT("<span class = \"error\">%s\n</span>", DATA_IS_NULL_MSG);
         PRINT("<span class = \"title\">\n----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n</span>");
@@ -175,7 +174,7 @@ void list_dump(List* list, const char msg[], indx_t err_pos)
 
     PRINT("data: ");
     for(indx_t iter = 0; iter < CAP; iter++)
-        PRINT("%5lg|", DATA[iter]);
+        PRINT("%5lg|", NODS[iter].data);
 
     PRINT("\n");
 
@@ -198,7 +197,7 @@ void list_dump(List* list, const char msg[], indx_t err_pos)
         if(cur_indx == -1)
             break;
             
-        PRINT("%5lg|", DATA[cur_indx]);
+        PRINT("%5lg|", NODS[cur_indx].data);
         cur_indx = NODS[cur_indx].next;
     }
 
@@ -211,7 +210,7 @@ void list_dump(List* list, const char msg[], indx_t err_pos)
         if(cur_indx == -1)
             break;
 
-        PRINT("%5lg|", DATA[cur_indx]);
+        PRINT("%5lg|", NODS[cur_indx].data);
         cur_indx = NODS[cur_indx].prev;
     }
     PRINT("\n\n");
@@ -248,11 +247,11 @@ void list_dump_init(FILE* dumpstream, void(*print_func)(FILE*, const elem_t*))
     {
         DUMP_STREAM = fopen(LIST_DUMPFILE, "w");
 
-        fprintf(DUMP_STREAM, "%s", HTML_INTRO);
-
         if(DUMP_STREAM)
         {
             atexit(&close_dumpfile_);
+
+            fprintf(DUMP_STREAM, "%s", HTML_INTRO);
             return;
         }
     }

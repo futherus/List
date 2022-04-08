@@ -41,7 +41,7 @@ static indx_t LIST_CAP_MLTPLR = 2;
 static indx_t list_verify_(List* list)
 {
     ASSERT(list, LIST_NULLPTR);
-    ASSERT(DATA && NODS, LIST_NOT_INIT);
+    ASSERT(NODS, LIST_NOT_INIT);
 
     indx_t pos = TAIL;
     for(indx_t iter = 0; iter < 2 * CAP; iter++)
@@ -105,6 +105,7 @@ static indx_t list_resize_(List* list, indx_t new_cap)
     {
         NODS[iter].next = iter + 1;
         NODS[iter].prev = INVLD_INDX;
+        NODS[iter].data = {};
     }
     NODS[new_cap - 1].next = -1;
 
@@ -127,7 +128,7 @@ static indx_t list_insert_(List* list, indx_t pos, elem_t elem)
     indx_t free = FREE;
     FREE = NODS[FREE].next;
 
-    DATA[free] = elem;
+    NODS[free].data = elem;
 
     NODS[free].prev = pos;
     NODS[free].next = NODS[pos].next;
@@ -150,7 +151,8 @@ static indx_t list_extract_(List* list, indx_t pos, elem_t* elem)
     if(pos != HEAD && pos != TAIL)
         SRTD = false;
 
-    *elem = DATA[pos];
+    *elem = NODS[pos].data;
+    NODS[pos].data = {};
 
     NODS[NODS[pos].prev].next = NODS[pos].next;
     NODS[NODS[pos].next].prev = NODS[pos].prev;
@@ -176,17 +178,15 @@ static indx_t list_init_cap_(indx_t init_cap)
     return cap;
 }
 
-indx_t list_init(List* list, elem_t* data, indx_t cap)
+indx_t list_init(List* list, indx_t init_cap)
 {
-    ASSERT(list && data, LIST_NULLPTR);
+    ASSERT(list, LIST_NULLPTR);
     ASSERT(!NODS, LIST_REINIT);
 
-    cap = list_init_cap_(cap);
+    init_cap = list_init_cap_(init_cap);
 
     NODS++; // shift for list header structure
-    ASSERT(list_resize_(list, cap) == 0, LIST_BAD_ALLOC);
-
-    DATA = data;
+    ASSERT(list_resize_(list, init_cap) == 0, LIST_BAD_ALLOC);
 
     TAIL = -1;
     HEAD = -1;
@@ -205,7 +205,6 @@ indx_t list_dstr(List* list)
     CAP  = INVLD_INDX;
     SIZE = INVLD_INDX;
     FREE = INVLD_INDX;
-    DATA = nullptr;
     NODS = nullptr;
 
     return (indx_t) LIST_NOERR;
@@ -265,7 +264,6 @@ static void list_node_swap_(List* list, indx_t indx_1, indx_t indx_2)
     }
 
     swap(&NODS[indx_1], &NODS[indx_2], sizeof(Node));
-    swap(&DATA[indx_1], &DATA[indx_2], sizeof(elem_t));
 }
 
 indx_t list_defragmentation(List* list)
