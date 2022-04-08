@@ -1,8 +1,9 @@
 #ifndef LIST_H
 #define LIST_H
 
+#include "config.h"
+
 typedef long   indx_t;
-typedef double elem_t;
 
 const indx_t INVLD_INDX = -666;
 
