@@ -1,5 +1,4 @@
 #include "List.h"
-#include "List_dump.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -14,79 +13,26 @@
 #define FREE (list->free)
 #define SRTD (list->sorted)
 
-static indx_t MIN_LIST_CAP = 8;
-static indx_t LIST_CAP_MLTPLR = 2;
-
-#define ASSERT_POS(CONDITION, ERROR, POS)       \
-    if(!(CONDITION))                            \
-    {                                           \
-        list_dump(list, #ERROR, (POS));         \
-        return (indx_t) (ERROR);                \
-    }                                           \
-
 #define ASSERT(CONDITION, ERROR)                \
     if(!(CONDITION))                            \
     {                                           \
-        list_dump(list, #ERROR, ERROR_INDX);    \
-        return (indx_t) (ERROR);                \
+        return (ERROR);                         \
     }                                           \
 
+#ifdef LIST_VERIFICATION
 #define VERIFY(LIST)                            \
     {                                           \
-        indx_t err = list_verify_(LIST);        \
+        int err = list_verify(LIST);            \
         if(err)                                 \
             return err;                         \
-    }                                           \
+    }                                           
+#else
+#define VERIFY(LIST) {void();}
+#endif // LIST_VERIFICATION
 
-static indx_t list_verify_(List* list)
+static int list_resize_(List* list, int new_cap)
 {
-    ASSERT(list, LIST_NULLPTR);
-    ASSERT(NODS, LIST_NOT_INIT);
-
-    indx_t pos = TAIL;
-    for(indx_t iter = 0; iter < 2 * CAP; iter++)
-    {
-        ASSERT_POS(pos >= -1 && pos < CAP, LIST_BAD_INDX, pos);
-        
-        ASSERT_POS(NODS[NODS[pos].prev].next == pos, LIST_RIP, pos);
-
-        if(pos == -1)
-        {
-            ASSERT_POS(iter == SIZE, LIST_MISS, pos);
-            
-            break;
-        }
-
-        ASSERT_POS(iter <= SIZE, LIST_CYCLE, pos);
-
-        pos = NODS[pos].prev;
-    }
-
-    pos = FREE;
-    for(indx_t iter = 0; iter < 2 * CAP; iter++)
-    {
-        if(pos == -1)
-        {
-            ASSERT_POS(iter == CAP - SIZE, LIST_FREE_MISS, pos);
-
-            break;
-        }
-
-        ASSERT_POS(iter < CAP, LIST_FREE_CYCLE, pos);
-
-        ASSERT_POS(pos >= -1 && pos < CAP, LIST_FREE_BADINDX, pos);
-
-        ASSERT_POS(NODS[pos].prev == INVLD_INDX, LIST_FREE_BADINDX, pos);
-
-        pos = NODS[pos].next;
-    }
-
-    return LIST_NOERR;
-}
-
-static indx_t list_resize_(List* list, indx_t new_cap)
-{
-    assert(list && new_cap > 0);
+    assert(list);
 
     if(new_cap < MIN_LIST_CAP)
         new_cap = MIN_LIST_CAP;
@@ -101,89 +47,23 @@ static indx_t list_resize_(List* list, indx_t new_cap)
     NODS = ((Node*) temp_ptr) + 1; // shift for list header structure
     
     FREE = CAP;
-    for(indx_t iter = FREE; iter < new_cap; iter++)
+    for(int iter = FREE; iter < new_cap; iter++)
     {
         NODS[iter].next = iter + 1;
-        NODS[iter].prev = INVLD_INDX;
+        NODS[iter].prev = LIST_INVLD_INDX;
         NODS[iter].data = {};
     }
-    NODS[new_cap - 1].next = -1;
+    NODS[new_cap - 1].next = LIST_HEADER_POS;
 
     CAP = new_cap;
 
     return LIST_NOERR;
 }
 
-static indx_t list_insert_(List* list, indx_t pos, elem_t elem)
+int list_ctor(List* list, int init_cap)
 {
-    ASSERT_POS(pos >= -1 && pos < CAP, LIST_BAD_INDX, pos);
-    ASSERT_POS(NODS[pos].next != INVLD_INDX, LIST_ACCESS_FREE, pos);
-
-    if(FREE == -1)
-        ASSERT_POS(list_resize_(list, CAP * LIST_CAP_MLTPLR) == 0, LIST_BAD_ALLOC, pos);            
-
-    if(pos != TAIL)
-        SRTD = false;
-
-    indx_t free = FREE;
-    FREE = NODS[FREE].next;
-
-    NODS[free].data = elem;
-
-    NODS[free].prev = pos;
-    NODS[free].next = NODS[pos].next;
-
-    NODS[NODS[pos].next].prev = free;
-    NODS[pos].next = free;
-
-    SIZE++;
-
-    return free;
-}
-
-static indx_t list_extract_(List* list, indx_t pos, elem_t* elem)
-{
-    ASSERT_POS(elem, LIST_NULLPTR, pos);
-    ASSERT_POS(pos >= 0 && pos < CAP, LIST_BAD_INDX, pos);
-    ASSERT_POS(NODS[pos].next != INVLD_INDX, LIST_ACCESS_FREE, pos);
-    ASSERT_POS(SIZE > 0, LIST_EMPTY, pos);
-
-    if(pos != HEAD && pos != TAIL)
-        SRTD = false;
-
-    *elem = NODS[pos].data;
-    NODS[pos].data = {};
-
-    NODS[NODS[pos].prev].next = NODS[pos].next;
-    NODS[NODS[pos].next].prev = NODS[pos].prev;
-
-    NODS[pos].next = FREE;
-    NODS[pos].prev = INVLD_INDX;
-    FREE = pos;
-
-    SIZE--;
-
-    return pos;
-}
-
-static indx_t list_init_cap_(indx_t init_cap) 
-{
-    if(init_cap < MIN_LIST_CAP)
-        return MIN_LIST_CAP;
-    
-    indx_t cap = MIN_LIST_CAP;
-    while(cap < init_cap)
-        cap *= LIST_CAP_MLTPLR;
-
-    return cap;
-}
-
-indx_t list_init(List* list, indx_t init_cap)
-{
-    ASSERT(list, LIST_NULLPTR);
+    assert(list);
     ASSERT(!NODS, LIST_REINIT);
-
-    init_cap = list_init_cap_(init_cap);
 
     NODS++; // shift for list header structure
     ASSERT(list_resize_(list, init_cap) == 0, LIST_BAD_ALLOC);
@@ -196,19 +76,73 @@ indx_t list_init(List* list, indx_t init_cap)
     return LIST_NOERR;
 }
 
-indx_t list_dstr(List* list)
+void list_dtor(List* list)
 {
-    VERIFY(list);
+    if(NODS != nullptr)
+        free(NODS - 1); // shift for list header structure
 
-    free(NODS - 1); // shift for list header structure
-
-    CAP  = INVLD_INDX;
-    SIZE = INVLD_INDX;
-    FREE = INVLD_INDX;
+    CAP  = LIST_INVLD_INDX;
+    SIZE = LIST_INVLD_INDX;
+    FREE = LIST_INVLD_INDX;
     NODS = nullptr;
 
-    return (indx_t) LIST_NOERR;
+    return;
 }
+
+#define ASSERT_POS(CONDITION, ERROR, POS)       \
+    if(!(CONDITION))                            \
+    {                                           \
+        list_dump(list, #ERROR, (POS));         \
+        return (ERROR);                         \
+    }                                           \
+
+int list_verify(List* list)
+{
+    assert(list);
+    ASSERT_POS(NODS || CAP == 0, LIST_NOT_INIT, -1);
+
+    int pos = TAIL;
+    for(int iter = 0; iter < 2 * CAP; iter++)
+    {
+        ASSERT_POS(pos >= LIST_HEADER_POS && pos < CAP, LIST_BAD_INDX, pos);
+        
+        ASSERT_POS(NODS[NODS[pos].prev].next == pos, LIST_RIP, pos);
+
+        if(pos == LIST_HEADER_POS)
+        {
+            ASSERT_POS(iter == SIZE, LIST_MISS, pos);
+            
+            break;
+        }
+
+        ASSERT_POS(iter <= SIZE, LIST_CYCLE, pos);
+
+        pos = NODS[pos].prev;
+    }
+
+    pos = FREE;
+    for(int iter = 0; iter < 2 * CAP; iter++)
+    {
+        if(pos == LIST_HEADER_POS)
+        {
+            ASSERT_POS(iter == CAP - SIZE, LIST_FREE_MISS, pos);
+
+            break;
+        }
+
+        ASSERT_POS(iter < CAP, LIST_FREE_CYCLE, pos);
+
+        ASSERT_POS(pos >= LIST_HEADER_POS && pos < CAP, LIST_FREE_BADINDX, pos);
+
+        ASSERT_POS(NODS[pos].prev == LIST_INVLD_INDX, LIST_FREE_BADINDX, pos);
+
+        pos = NODS[pos].next;
+    }
+
+    return LIST_NOERR;
+}
+
+#undef ASSERT_POS
 
 /** \brief  Swaps any type
 
@@ -246,18 +180,18 @@ static void swap(void* first, void* second, size_t size)
     #undef SWAP_ITERATION
 }
 
-static void list_node_swap_(List* list, indx_t indx_1, indx_t indx_2)
+static void list_node_swap_(List* list, int indx_1, int indx_2)
 {
     Node temp_1 = NODS[indx_1];
     Node temp_2 = NODS[indx_2];
 
-    if(temp_1.prev != INVLD_INDX)
+    if(temp_1.prev != LIST_INVLD_INDX)
     {
         NODS[temp_1.next].prev = indx_2;
         NODS[temp_1.prev].next = indx_2;
     }
 
-    if(temp_2.prev != INVLD_INDX)
+    if(temp_2.prev != LIST_INVLD_INDX)
     {
         NODS[temp_2.next].prev = indx_1;
         NODS[temp_2.prev].next = indx_1;
@@ -266,12 +200,12 @@ static void list_node_swap_(List* list, indx_t indx_1, indx_t indx_2)
     swap(&NODS[indx_1], &NODS[indx_2], sizeof(Node));
 }
 
-indx_t list_defragmentation(List* list)
+int list_defragmentation(List* list)
 {
     VERIFY(list);
 
-    indx_t pos = HEAD;
-    for(indx_t iter = 0; iter < SIZE; iter++)
+    int pos = HEAD;
+    for(int iter = 0; iter < SIZE; iter++)
     {
         assert(pos >= 0);
 
@@ -282,71 +216,134 @@ indx_t list_defragmentation(List* list)
     }
 
     FREE = SIZE;
-    for(indx_t iter = FREE; iter < CAP; iter++)
+    for(int iter = FREE; iter < CAP; iter++)
         NODS[iter].next = iter + 1;
 
-    NODS[CAP - 1].next = -1;
+    NODS[CAP - 1].next = LIST_HEADER_POS;
 
     VERIFY(list);
 
     SRTD = true;
 
-    return (indx_t) LIST_NOERR;
+    return LIST_NOERR;
 }
 
-indx_t list_find(List* list, indx_t lpos)
+int list_find(List* list, int lpos, elem_t* elem)
 {
-    ASSERT(lpos >= 0 && lpos < SIZE, LIST_BAD_INDX);
     VERIFY(list);
+    ASSERT(lpos >= 0 && lpos < SIZE, LIST_BAD_INDX);
 
     if(SRTD)
         return HEAD + lpos;
     
-    indx_t pos = HEAD;
-    for(indx_t iter = 0; iter < lpos; iter++)
+    int pos = HEAD;
+    for(int iter = 0; iter < lpos; iter++)
         pos = NODS[pos].next;
+
+    *elem = NODS[pos].data;
+    return pos;
+}
+
+int list_insert(List* list, int pos, elem_t elem)
+{
+    VERIFY(list);
+    ASSERT(pos >= LIST_HEADER_POS && pos < CAP, LIST_BAD_INDX);
+    ASSERT(NODS[pos].next != LIST_INVLD_INDX, LIST_ACCESS_FREE);
+
+    if(FREE == LIST_HEADER_POS)
+        ASSERT(list_resize_(list, CAP * LIST_CAP_MLTPLR) == 0, LIST_BAD_ALLOC);            
+
+    if(pos != TAIL)
+        SRTD = false;
+
+    int free = FREE;
+    FREE = NODS[FREE].next;
+
+    NODS[free].data = elem;
+
+    NODS[free].prev = pos;
+    NODS[free].next = NODS[pos].next;
+
+    NODS[NODS[pos].next].prev = free;
+    NODS[pos].next = free;
+
+    SIZE++;
+
+    return free;
+}
+
+int list_push_back(List* list, elem_t elem)
+{
+    return list_insert(list, TAIL, elem);
+}
+
+int list_push_front(List* list, elem_t elem)
+{
+    return list_insert(list, LIST_HEADER_POS, elem);
+}
+
+int list_delete(List* list, int pos)
+{
+    VERIFY(list);
+    ASSERT(pos >= 0 && pos < CAP, LIST_BAD_INDX);
+    ASSERT(NODS[pos].next != LIST_INVLD_INDX, LIST_ACCESS_FREE);
+    ASSERT(SIZE > 0, LIST_EMPTY);
+
+    if(pos != HEAD && pos != TAIL)
+        SRTD = false;
+
+    NODS[pos].data = {};
+
+    NODS[NODS[pos].prev].next = NODS[pos].next;
+    NODS[NODS[pos].next].prev = NODS[pos].prev;
+
+    NODS[pos].next = FREE;
+    NODS[pos].prev = LIST_INVLD_INDX;
+    FREE = pos;
+
+    SIZE--;
 
     return pos;
 }
 
-indx_t list_insert(List* list, indx_t pos, elem_t elem)
+int list_pop_back(List* list)
 {
-    VERIFY(list);
-
-    return list_insert_(list, pos, elem);
+    return list_delete(list, TAIL);
 }
 
-indx_t list_extract(List* list, indx_t pos, elem_t* elem)
+int list_pop_front(List* list)
 {
-    VERIFY(list);
-
-    return list_extract_(list, pos, elem);
+    return list_delete(list, HEAD);
 }
 
-indx_t list_push_back(List* list, elem_t elem)
+int list_get(List* list, int pos, elem_t* elem)
 {
     VERIFY(list);
+    ASSERT(pos >= LIST_HEADER_POS && pos < CAP, LIST_BAD_INDX);
+    ASSERT(NODS[pos].next != LIST_INVLD_INDX, LIST_ACCESS_FREE);
 
-    return list_insert_(list, TAIL, elem);
+    if(elem && pos != LIST_HEADER_POS)
+        *elem = NODS[pos].data;
+    
+    return pos;
 }
 
-indx_t list_push_front(List* list, elem_t elem)
+int list_next(List* list, int pos, elem_t* elem)
 {
-    VERIFY(list);
-
-    return list_insert_(list, -1, elem);
+    return list_get(list, NODS[pos].next, elem);
 }
 
-indx_t list_pop_back(List* list, elem_t* elem)
-{
-    VERIFY(list);
-
-    return list_extract_(list, TAIL, elem);
+int list_prev(List* list, int pos, elem_t* elem)
+{    
+    return list_get(list, NODS[pos].prev, elem);
 }
 
-indx_t list_pop_front(List* list, elem_t* elem)
+int list_back(List* list, elem_t* elem)
 {
-    VERIFY(list);
+    return list_get(list, TAIL, elem);
+}
 
-    return list_extract_(list, HEAD, elem);
+int list_front(List* list, elem_t* elem)
+{
+    return list_get(list, HEAD, elem);
 }

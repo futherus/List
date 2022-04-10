@@ -1,26 +1,15 @@
-#include "List_dump.h"
-
 #ifndef __USE_MINGW_ANSI_STDIO
 #define __USE_MINGW_ANSI_STDIO 1
 #endif
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <assert.h>
 
-static const int GRAPHVIZ_NAME_SIZE = 300;
+#include "List.h"
 
-static long DUMP_ITERATION = 0;
-static const char GRAPHVIZ_PNG_NAME[] = "graphviz_dump";
-static const char LIST_DUMPFILE[]     = "list_dump.html";
-
-static char* graphviz_png_()
-{
-    static char filename[GRAPHVIZ_NAME_SIZE] = "";
-    sprintf(filename, "%s_%ld.png", GRAPHVIZ_PNG_NAME, DUMP_ITERATION);
-
-    return filename;
-}
-
+//-----------------------------------------------------------------------------
+#ifdef GRAPHVIZ_ENABLE
 static const char GRAPHVIZ_INTRO[] =
 R"(
 digraph G{
@@ -41,6 +30,8 @@ digraph G{
 )";
 
 static const char GRAPHVIZ_OUTRO[] = "}\n";
+#endif // GRAPHVIZ_ENABLE
+//-----------------------------------------------------------------------------
 
 static const char HTML_INTRO[] =
 R"(
@@ -67,23 +58,32 @@ R"(
 </html>
 )";
 
-static FILE* DUMP_STREAM    = nullptr;
-static void (*PRINT_ELEM)(FILE* dumpstream, const elem_t* elem) = nullptr;
-
 #define PRINT(format, ...) fprintf(stream, format, ##__VA_ARGS__)
 
 #define NODS (list->node_arr)
-#define FRES (list->free_arr)
 #define TAIL (NODS[-1].prev)
 #define HEAD (NODS[-1].next)
 #define FREE (list->free)
 #define SIZE (list->size)
 #define CAP  (list->capacity)
-#define SRTD (list->sorted)
 
-static void list_graph_dump_(List* list)
+static FILE* DUMP_STREAM  = nullptr;
+static void (*PRINT_ELEM)(FILE* dumpstream, const elem_t* elem) = nullptr;
+
+//-----------------------------------------------------------------------------
+#ifdef GRAPHVIZ_ENABLE
+static char* graphviz_png_(int dump_iter)
 {
-    FILE* stream = fopen("graphviz_temp.txt", "w");
+    static char filename[GRAPHVIZ_NAME_SIZE] = "";
+    
+    sprintf(filename, "%s_%d.png", GRAPHVIZ_PNG_NAME, dump_iter);
+
+    return filename;
+}
+
+static void list_graph_dump_(List* list, int dump_iter)
+{
+    FILE* stream = fopen(GRAPHVIZ_TMP_NAME, "w");
     
     PRINT("%s", GRAPHVIZ_INTRO);
 
@@ -92,22 +92,26 @@ static void list_graph_dump_(List* list)
           &NODS[-1], &NODS[-1]);
 
     PRINT("{rank = same;\n"
-          "label%p[label = \"header \n\n head: %ld \n tail: %ld \n free: %ld\", color = \"red\"];\n",
+          "label%p[label = \"header \n\n head: %d \n tail: %d \n free: %d\", color = \"red\"];\n",
            &NODS[-1], NODS[-1].next, NODS[-1].prev, FREE);
 
-    for(indx_t iter = 0; iter < CAP; iter++)
+    for(int iter = 0; iter < CAP; iter++)
     {
-        PRINT("label%p[label = \"idx: %ld \n\n %lg \n nxt: %ld \n prv: %ld\"];\n",
-               &NODS[iter], iter, NODS[iter].data, NODS[iter].next, NODS[iter].prev);
+        PRINT("label%p[label = \"idx: %d \n\n", &NODS[iter], iter);
+        if(PRINT_ELEM)
+            PRINT_ELEM(stream, &NODS[iter].data);
+        else
+            PRINT("--//--");
+        PRINT("\n nxt: %d \n prv: %d\"];\n", NODS[iter].next, NODS[iter].prev);
 
         PRINT("label%p -> label%p[weight = 5, style = invis];\n", &NODS[iter - 1], &NODS[iter]);
     }
 
     PRINT("}\n");
 
-    for(indx_t iter = 0; iter < CAP; iter++)
+    for(int iter = 0; iter < CAP; iter++)
     {
-        if(NODS[iter].prev != INVLD_INDX)        
+        if(NODS[iter].prev != LIST_INVLD_INDX)        
         {
             PRINT("label%p -> label%p [color = \"green\"];\n", &NODS[iter], &NODS[NODS[iter].next]);
             PRINT("label%p -> label%p [color = \"orange\", dir = \"back\"];\n", &NODS[NODS[iter].prev], &NODS[iter]);
@@ -125,11 +129,14 @@ static void list_graph_dump_(List* list)
 
     fclose(stream);
 
-    char sys_cmd[GRAPHVIZ_NAME_SIZE] = "dot graphviz_temp.txt -q -Tpng -o ";
-    strcat(sys_cmd, graphviz_png_());
+    char sys_cmd[GRAPHVIZ_NAME_SIZE] = {}; 
+    sprintf(sys_cmd, "dot %s -q -Tpng -o %s", GRAPHVIZ_TMP_NAME, graphviz_png_(dump_iter));
 
     system(sys_cmd);
 }
+#endif // GRAPHVIZ_ENABLE
+//-----------------------------------------------------------------------------
+
 
 static const char DATA_IS_NULL_MSG[] = "\n                                                                                            "
                                        "\n  DDDDDD      A    TTTTTTTTT    A         IIIII   SSSSS     N    N  U     U  L      L       "
@@ -139,9 +146,13 @@ static const char DATA_IS_NULL_MSG[] = "\n                                      
                                        "\n  DDDDDD  A       A    T    A       A     IIIII  SSSSS      N   NN   UUUUU   LLLLLL LLLLLL  "
                                        "\n                                                                                            ";
 
-void list_dump(List* list, const char msg[], indx_t err_pos)
+void list_dump(List* list, const char* msg, int err_pos)
 {
-    DUMP_ITERATION++;
+#ifdef GRAPHVIZ_ENABLE
+    static int dump_iter = 0;
+#endif // GRAPHVIZ_ENABLE
+
+    assert(list);
 
     FILE* stream = DUMP_STREAM;
     if(stream == nullptr)
@@ -149,13 +160,16 @@ void list_dump(List* list, const char msg[], indx_t err_pos)
 
     PRINT("<span class = \"title\">----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------</span>\n");
     
-    if(err_pos == DEFLT_INDX)
-        PRINT("<span class = \"title\"> %s </span>\n", msg);
-    else if(err_pos == ERROR_INDX)
-        PRINT("<span class = \"error\"> %s </span>\n", msg);
-    else
-        PRINT("<span class = \"error\"> %s (%ld) </span>\n", msg, err_pos);
-
+    if(msg)
+    {
+        if(err_pos == LIST_DEFLT)
+            PRINT("<span class = \"title\"> %s </span>\n", msg);
+        else if(err_pos == LIST_ERROR)
+            PRINT("<span class = \"error\"> %s </span>\n", msg);
+        else
+            PRINT("<span class = \"error\"> %s (%d) </span>\n", msg, err_pos);
+    }
+    
     if(!NODS)
     {
         PRINT("<span class = \"error\">%s\n</span>", DATA_IS_NULL_MSG);
@@ -163,63 +177,68 @@ void list_dump(List* list, const char msg[], indx_t err_pos)
         return;
     }
 
-    PRINT("tail: %5ld\n" "head: %5ld\n" "free: %5ld\n" "size: %5ld\n" "cap:  %5ld\n" "sorted: %3d\n\n",
-           TAIL, HEAD, FREE, SIZE, CAP, SRTD);
+    PRINT("tail: %5d\n" "head: %5d\n" "free: %5d\n" "size: %5d\n" "cap:  %5d\n\n",
+           TAIL, HEAD, FREE, SIZE, CAP);
 
     PRINT("indx: ");
-    for(indx_t iter = 0; iter < CAP; iter++)
-        PRINT("%5ld|", iter);
-
-    PRINT("\n");
-
-    PRINT("data: ");
-    for(indx_t iter = 0; iter < CAP; iter++)
-        PRINT("%5lg|", NODS[iter].data);
+    for(int iter = 0; iter < CAP; iter++)
+        PRINT("%5d|", iter);
 
     PRINT("\n");
 
     PRINT("next: ");
-    for(indx_t iter = 0; iter < CAP; iter++)
-        PRINT("%5ld|", NODS[iter].next);
+    for(int iter = 0; iter < CAP; iter++)
+        PRINT("%5d|", NODS[iter].next);
 
     PRINT("\n");
 
     PRINT("prev: ");
-    for(indx_t iter = 0; iter < CAP; iter++)
-        PRINT("%5ld|", NODS[iter].prev);
+    for(int iter = 0; iter < CAP; iter++)
+        PRINT("%5d|", NODS[iter].prev);
 
     PRINT("\n\n");
     
-    indx_t cur_indx = HEAD;
-    PRINT(">>>>: ");
-    for(indx_t iter = 0; iter < CAP; iter++)
+    if(PRINT_ELEM)
     {
-        if(cur_indx == -1)
-            break;
-            
-        PRINT("%5lg|", NODS[cur_indx].data);
-        cur_indx = NODS[cur_indx].next;
+        int cur_indx = HEAD;
+        PRINT(">>>>: ");
+        for(int iter = 0; iter < CAP; iter++)
+        {
+            if(cur_indx == LIST_HEADER_POS)
+                break;
+
+            PRINT("`"); 
+            PRINT_ELEM(stream, &NODS[cur_indx].data);
+            PRINT("` ");
+            cur_indx = NODS[cur_indx].next;
+        }
+
+        PRINT("\n");
+
+        cur_indx = TAIL;
+        PRINT("<<<<: ");
+        for(int iter = 0; iter < CAP; iter++)
+        {
+            if(cur_indx == LIST_HEADER_POS)
+                break;
+
+            PRINT("`"); 
+            PRINT_ELEM(stream, &NODS[cur_indx].data);
+            PRINT("` ");
+            cur_indx = NODS[cur_indx].prev;
+        }
+        PRINT("\n\n");
     }
 
-    PRINT("\n");
-
-    cur_indx = TAIL;
-    PRINT("<<<<: ");
-    for(indx_t iter = 0; iter < CAP; iter++)
-    {
-        if(cur_indx == -1)
-            break;
-
-        PRINT("%5lg|", NODS[cur_indx].data);
-        cur_indx = NODS[cur_indx].prev;
-    }
-    PRINT("\n\n");
-
-    list_graph_dump_(list);
-
-    PRINT(R"(<img src = ")" "%s" R"(" alt = "Graphical dump" height = 400>)", graphviz_png_());
+#ifdef GRAPHVIZ_ENABLE
+    list_graph_dump_(list, dump_iter);
+    PRINT(R"(<img src = ")" "%s" R"(" alt = "Graphical dump" height = 400>)", graphviz_png_(dump_iter));
+    dump_iter++;
+#endif // GRAPHVIZ_ENABLE
 
     PRINT("<span class = \"title\">\n----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n</span>");
+
+    return;
 }
 
 #undef PRINT
@@ -229,10 +248,10 @@ static void close_dumpfile_()
     fprintf(DUMP_STREAM, "%s", HTML_OUTRO);
 
     if(fclose(DUMP_STREAM) != 0)
-        perror("List dump file can't be succesfully closed");
+        perror("List dump: file was closed unsuccessfully");
 }
 
-void list_dump_init(FILE* dumpstream, void(*print_func)(FILE*, const elem_t*))
+FILE* list_dump_init(FILE* dumpstream, void(*print_func)(FILE*, const elem_t*))
 {
     if(print_func)
         PRINT_ELEM = print_func;
@@ -240,24 +259,23 @@ void list_dump_init(FILE* dumpstream, void(*print_func)(FILE*, const elem_t*))
     if(dumpstream)
     {
         DUMP_STREAM = dumpstream;
-        return;
+        return DUMP_STREAM;
     }
 
-    if(LIST_DUMPFILE[0] != 0)
+    if(LIST_DEFAULT_DUMPFILE[0] != 0)
     {
-        DUMP_STREAM = fopen(LIST_DUMPFILE, "w");
+        DUMP_STREAM = fopen(LIST_DEFAULT_DUMPFILE, "w");
 
         if(DUMP_STREAM)
         {
             atexit(&close_dumpfile_);
 
             fprintf(DUMP_STREAM, "%s", HTML_INTRO);
-            return;
+            return DUMP_STREAM;
         }
     }
 
-    perror("Can't open dump file");
-    DUMP_STREAM = stderr;
+    perror("List dump: cannot open dump file");
 
-    return;
+    return nullptr;
 }

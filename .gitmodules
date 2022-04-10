@@ -1,0 +1,3 @@
+[submodule "utils/logs"]
+	path = utils/logs
+	url = git@github.com:futherus/logs.git

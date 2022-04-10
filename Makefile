@@ -5,9 +5,9 @@ SRCDIR := src/
 OBJDIR := obj/
 BINDIR := bin/
 
-VPATH = $(SRCDIR) 
+VPATH = $(SRCDIR) tests/ utils/logs/
 
-SRC := main.cpp List.cpp List_dump.cpp
+SRC := main.cpp List.cpp List_dump.cpp logs.cpp
 OBJ := $(SRC:.cpp=.o)
 TARGET := $(BINDIR)list
 
@@ -27,4 +27,4 @@ $(BINDIR):
 	mkdir $(BINDIR)
 
 clean:
-	rm -rf $(OBJDIR) $(BINDIR)
+	rm -rf $(OBJDIR) $(BINDIR) graphviz_* logs.html
