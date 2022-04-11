@@ -11,7 +11,7 @@ struct Node
     int next = 0;
     int prev = 0;
 
-    elem_t data = {};
+    list_elem_t data = {};
 };
 
 struct List 
@@ -56,7 +56,7 @@ void list_dtor(List* list);
  *  \param dumpstream stream for dump (if dumpstream == nullptr new file will be opened)
  *  \param print_func function for printing list element
 **/ 
-FILE* list_dump_init(FILE* dumpstream, void(*print_func)(FILE*, const elem_t*));
+FILE* list_dump_init(FILE* dumpstream, void(*print_func)(FILE*, const list_elem_t*));
 void  list_dump(List* list, const char* msg = nullptr, int err_pos = LIST_DEFLT);
 int   list_verify(List* list);
 
@@ -67,9 +67,9 @@ int   list_verify(List* list);
  *  \return     physical position of inserted element on success
  *              error code otherwise
 **/
-int  list_insert    (List* list, int pos, elem_t  elem);
-int  list_push_front(List* list, elem_t  elem);
-int  list_push_back (List* list, elem_t  elem);
+int  list_insert    (List* list, int pos, list_elem_t  elem);
+int  list_push_front(List* list, list_elem_t  elem);
+int  list_push_back (List* list, list_elem_t  elem);
 
 /** Deleting element
  *  \param pos  physical position of element to delete
@@ -90,11 +90,11 @@ int  list_pop_back (List* list);
  *               LIST_HEADER_POS if end of list was met
  *               error code otherwise
 **/
-int  list_get       (List* list, int pos, elem_t* elem = nullptr);
-int  list_next      (List* list, int pos, elem_t* elem = nullptr);
-int  list_prev      (List* list, int pos, elem_t* elem = nullptr);
-int  list_back      (List* list, elem_t* elem = nullptr);
-int  list_front     (List* list, elem_t* elem = nullptr);
+int  list_get       (List* list, int pos, list_elem_t* elem = nullptr);
+int  list_next      (List* list, int pos, list_elem_t* elem = nullptr);
+int  list_prev      (List* list, int pos, list_elem_t* elem = nullptr);
+int  list_back      (List* list, list_elem_t* elem = nullptr);
+int  list_front     (List* list, list_elem_t* elem = nullptr);
 
 /** Getting element
  *  \param lpos logical position of desired element
@@ -103,7 +103,7 @@ int  list_front     (List* list, elem_t* elem = nullptr);
  *  \return     physical position of return element on success
  *              error code otherwise
 **/
-int  list_find      (List* list, int lpos, elem_t* elem = nullptr);
+int  list_find      (List* list, int lpos, list_elem_t* elem = nullptr);
 
 /** Sorting elements according to logical positions
  *  \return     0 on success

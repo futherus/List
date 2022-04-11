@@ -4,7 +4,7 @@
 #include "../src/List.h"
 #include "../utils/logs/logs.h"
 
-void print_elem(FILE* stream, const elem_t* elem)
+void print_elem(FILE* stream, const list_elem_t* elem)
 {
     fprintf(stream, "ptr = %p, " "key = %s", elem->obj, elem->key);
 }
@@ -16,7 +16,7 @@ int main()
     list_dump_init(logs_get(), &print_elem);
     list_ctor(&list, 0);
 
-    elem_t val = {};
+    list_elem_t val = {};
     memcpy(val.key, "Keyvalue", sizeof("Keyvalue"));
     list_push_back(&list, val);
     list_dump(&list, nullptr);

@@ -68,7 +68,7 @@ R"(
 #define CAP  (list->capacity)
 
 static FILE* DUMP_STREAM  = nullptr;
-static void (*PRINT_ELEM)(FILE* dumpstream, const elem_t* elem) = nullptr;
+static void (*PRINT_ELEM)(FILE* dumpstream, const list_elem_t* elem) = nullptr;
 
 //-----------------------------------------------------------------------------
 #ifdef GRAPHVIZ_ENABLE
@@ -251,7 +251,7 @@ static void close_dumpfile_()
         perror("List dump: file was closed unsuccessfully");
 }
 
-FILE* list_dump_init(FILE* dumpstream, void(*print_func)(FILE*, const elem_t*))
+FILE* list_dump_init(FILE* dumpstream, void(*print_func)(FILE*, const list_elem_t*))
 {
     if(print_func)
         PRINT_ELEM = print_func;

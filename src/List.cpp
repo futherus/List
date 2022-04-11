@@ -228,7 +228,7 @@ int list_defragmentation(List* list)
     return LIST_NOERR;
 }
 
-int list_find(List* list, int lpos, elem_t* elem)
+int list_find(List* list, int lpos, list_elem_t* elem)
 {
     VERIFY(list);
     ASSERT(lpos >= 0 && lpos < SIZE, LIST_BAD_INDX);
@@ -244,7 +244,7 @@ int list_find(List* list, int lpos, elem_t* elem)
     return pos;
 }
 
-int list_insert(List* list, int pos, elem_t elem)
+int list_insert(List* list, int pos, list_elem_t elem)
 {
     VERIFY(list);
     ASSERT(pos >= LIST_HEADER_POS && pos < CAP, LIST_BAD_INDX);
@@ -272,12 +272,12 @@ int list_insert(List* list, int pos, elem_t elem)
     return free;
 }
 
-int list_push_back(List* list, elem_t elem)
+int list_push_back(List* list, list_elem_t elem)
 {
     return list_insert(list, TAIL, elem);
 }
 
-int list_push_front(List* list, elem_t elem)
+int list_push_front(List* list, list_elem_t elem)
 {
     return list_insert(list, LIST_HEADER_POS, elem);
 }
@@ -316,7 +316,7 @@ int list_pop_front(List* list)
     return list_delete(list, HEAD);
 }
 
-int list_get(List* list, int pos, elem_t* elem)
+int list_get(List* list, int pos, list_elem_t* elem)
 {
     VERIFY(list);
     ASSERT(pos >= LIST_HEADER_POS && pos < CAP, LIST_BAD_INDX);
@@ -328,22 +328,22 @@ int list_get(List* list, int pos, elem_t* elem)
     return pos;
 }
 
-int list_next(List* list, int pos, elem_t* elem)
+int list_next(List* list, int pos, list_elem_t* elem)
 {
     return list_get(list, NODS[pos].next, elem);
 }
 
-int list_prev(List* list, int pos, elem_t* elem)
+int list_prev(List* list, int pos, list_elem_t* elem)
 {    
     return list_get(list, NODS[pos].prev, elem);
 }
 
-int list_back(List* list, elem_t* elem)
+int list_back(List* list, list_elem_t* elem)
 {
     return list_get(list, TAIL, elem);
 }
 
-int list_front(List* list, elem_t* elem)
+int list_front(List* list, list_elem_t* elem)
 {
     return list_get(list, HEAD, elem);
 }

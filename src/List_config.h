@@ -20,8 +20,8 @@ const size_t KEY_SIZE = 32;
 
 typedef struct
 {
-    void* obj = nullptr;
-    char  key[KEY_SIZE + 1] = {};
-} elem_t;
+    double obj = {};
+    char key[KEY_SIZE + 1] = {};
+} list_elem_t;
 
 #endif // LIST_CONFIG_H
