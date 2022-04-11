@@ -6,7 +6,7 @@
 
 void print_elem(FILE* stream, const list_elem_t* elem)
 {
-    fprintf(stream, "ptr = %p, " "key = %s", elem->obj, elem->key);
+    fprintf(stream, "val = %lg, " "key = %s", elem->obj, elem->key);
 }
 
 int main()
@@ -23,7 +23,7 @@ int main()
 
     for(int iter = 0; iter < 10; iter++)
     {
-        val.obj = (void*) iter;
+        val.obj = iter;
         list_insert(&list, 0, val);
     }
 
