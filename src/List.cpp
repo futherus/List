@@ -6,18 +6,19 @@
 
 #define DATA (list->data_arr)
 #define NODS (list->node_arr)
-#define TAIL (NODS[-1].prev)
-#define HEAD (NODS[-1].next)
+#define TAIL (NODS[LIST_HEADER_POS].prev)
+#define HEAD (NODS[LIST_HEADER_POS].next)
 #define SIZE (list->size)
 #define CAP  (list->capacity)
 #define FREE (list->free)
 #define SRTD (list->sorted)
 
-#define ASSERT(CONDITION, ERROR)                \
-    if(!(CONDITION))                            \
-    {                                           \
-        return (ERROR);                         \
-    }                                           \
+#define ASSERT(CONDITION, ERROR)                                    \
+    if(!(CONDITION))                                                \
+    {                                                               \
+        fprintf(stderr, "\x1b[31;1mERROR:\x1b[0m %s\n", #ERROR);    \
+        return (ERROR);                                             \
+    }                                                               \
 
 #ifdef LIST_VERIFICATION
 #define VERIFY(LIST)                            \
