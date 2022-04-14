@@ -1,6 +1,8 @@
 #ifndef LIST_CONFIG_H
 #define LIST_CONFIG_H
 
+#include "../../../src/Hashtable_config.h"
+
 //-----------------------------------------------------------------------------
 #define GRAPHVIZ_ENABLE
 //#define LIST_VERIFICATION
@@ -20,7 +22,7 @@ const size_t KEY_SIZE = 32;
 
 typedef struct
 {
-    double obj = {};
+    ht_elem_t obj = {};
     char key[KEY_SIZE + 1] = {};
 } list_elem_t;
 
