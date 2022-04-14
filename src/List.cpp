@@ -52,7 +52,7 @@ static int list_resize_(List* list, int new_cap)
     {
         NODS[iter].next = iter + 1;
         NODS[iter].prev = LIST_INVLD_INDX;
-        NODS[iter].data = {};
+        // NODS[iter].data = {};
     }
     NODS[new_cap - 1].next = LIST_HEADER_POS;
 
@@ -293,7 +293,7 @@ int list_delete(List* list, int pos)
     if(pos != HEAD && pos != TAIL)
         SRTD = false;
 
-    NODS[pos].data = {};
+    // NODS[pos].data = {};
 
     NODS[NODS[pos].prev].next = NODS[pos].next;
     NODS[NODS[pos].next].prev = NODS[pos].prev;

@@ -75,7 +75,7 @@ int  list_push_back (List* list, list_elem_t  elem);
  *  \param pos  physical position of element to delete
  *  \param elem destination pointer
  * 
- *  \return     0 on success
+ *  \return     physical position of inserted element on success
  *              error code otherwise
 **/
 int  list_delete   (List* list, int pos);

@@ -1,6 +1,7 @@
 #ifndef LIST_CONFIG_H
 #define LIST_CONFIG_H
 
+#include <immintrin.h>
 #include "../../../src/Hashtable_config.h"
 
 //-----------------------------------------------------------------------------
@@ -22,8 +23,8 @@ const size_t KEY_SIZE = 32;
 
 typedef struct
 {
+    __m256i key;
     ht_elem_t obj = {};
-    char key[KEY_SIZE + 1] = {};
 } list_elem_t;
 
 #endif // LIST_CONFIG_H
