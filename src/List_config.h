@@ -1,7 +1,6 @@
 #ifndef LIST_CONFIG_H
 #define LIST_CONFIG_H
 
-#include <immintrin.h>
 #include "../../../src/Hashtable_config.h"
 
 //-----------------------------------------------------------------------------

@@ -6,16 +6,13 @@
 
 #include "List_config.h"
 
-// Structure list_elem_t alligns on 32 bytes because of __m256i member =>
-// => (sizeof(list_elem_t) = 64).
-// Therefore Node also alligns on 32 bytes => sizeof(Node) = 96.
 struct Node
 {
     list_elem_t data = {};
     
     int next = 0;
     int prev = 0;
-} __attribute__((aligned(LIST_ALIGNMENT)));
+};
 
 struct List 
 {

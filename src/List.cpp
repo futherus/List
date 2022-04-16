@@ -42,18 +42,12 @@ static int list_resize_(List* list, int new_cap)
         return LIST_NOERR;
 
     NODS--;                        // shift for list header structure
-    Node* tmp_ptr = (Node*) aligned_alloc(LIST_ALIGNMENT, (size_t) (new_cap + 1) * sizeof(Node));
+    Node* tmp_ptr = (Node*) realloc(NODS, (new_cap + 1) * sizeof(Node));
     if(!tmp_ptr)
         return LIST_BAD_ALLOC;
     
-    if(NODS != nullptr)
-    {
-        memcpy(tmp_ptr, NODS, (CAP + 1) * sizeof(Node));
-        free(NODS);
-    }
-
-    NODS = tmp_ptr + 1; // shift for list header structure
-
+    NODS = ((Node*) tmp_ptr) + 1; // shift for list header structure
+    
     FREE = CAP;
     for(int iter = FREE; iter < new_cap; iter++)
     {
@@ -80,7 +74,7 @@ int list_ctor(List* list, int init_cap)
     // pointer for list_resize_(). NODS-- appeared to be UB, because it used ariphmetic on 
     // nullptr. Therefore initializing aligned_alloc() was made distinguished.
 
-    Node* tmp_ptr = (Node*) aligned_alloc(LIST_ALIGNMENT, (size_t) (init_cap + 1) * sizeof(Node));
+    Node* tmp_ptr = (Node*) calloc((size_t) init_cap + 1, sizeof(Node));
     if(!tmp_ptr)
         return LIST_BAD_ALLOC;
 
