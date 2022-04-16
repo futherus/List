@@ -129,7 +129,7 @@ static void list_graph_dump_(List* list, int dump_iter)
 
     fclose(stream);
 
-    char sys_cmd[GRAPHVIZ_NAME_SIZE] = {}; 
+    char sys_cmd[GRAPHVIZ_NAME_SIZE * 2] = {}; 
     sprintf(sys_cmd, "dot %s -q -Tpng -o %s", GRAPHVIZ_TMP_NAME, graphviz_png_(dump_iter));
 
     system(sys_cmd);

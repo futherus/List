@@ -6,28 +6,36 @@
 
 #include "List_config.h"
 
+// Structure list_elem_t alligns on 32 bytes because of __m256i member =>
+// => (sizeof(list_elem_t) = 64).
+// Therefore Node also alligns on 32 bytes => sizeof(Node) = 96.
 struct Node
 {
+    list_elem_t data = {};
+    
     int next = 0;
     int prev = 0;
-
-    list_elem_t data = {};
-};
+} __attribute__((aligned(LIST_ALIGNMENT)));
 
 struct List 
 {
-    int capacity = 0;
-    int size     = 0;
-    int free     = 0;
-    bool   sorted   = 0;
+    int  capacity = 0;
+    int  size     = 0;
+    int  free     = 0;
+    bool sorted   = 0;
 
     Node* node_arr = nullptr;
 };
 
 // position of header structure
+// header->next = head element
+// header->prev = tail element
+// header->free = first free element
 const int LIST_HEADER_POS = -1;
+
 // index for filling invalid fields
 const int LIST_INVLD_INDX = -666;
+
 // indexes for dump
 const int LIST_DEFLT = -777;
 const int LIST_ERROR = -778;
@@ -75,7 +83,7 @@ int  list_push_back (List* list, list_elem_t  elem);
  *  \param pos  physical position of element to delete
  *  \param elem destination pointer
  * 
- *  \return     physical position of inserted element on success
+ *  \return     physical position of deleted element on success
  *              error code otherwise
 **/
 int  list_delete   (List* list, int pos);

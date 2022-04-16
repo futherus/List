@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <string.h>
 #include <stdint.h>
 
 #define DATA (list->data_arr)
@@ -33,7 +34,7 @@
 
 static int list_resize_(List* list, int new_cap)
 {
-    assert(list);
+    assert(list && new_cap >= CAP);
 
     if(new_cap < MIN_LIST_CAP)
         new_cap = MIN_LIST_CAP;
@@ -41,12 +42,18 @@ static int list_resize_(List* list, int new_cap)
         return LIST_NOERR;
 
     NODS--;                        // shift for list header structure
-    void* temp_ptr = realloc(NODS, (new_cap + 1) * sizeof(Node));
-    if(!temp_ptr)
+    Node* tmp_ptr = (Node*) aligned_alloc(LIST_ALIGNMENT, (size_t) (new_cap + 1) * sizeof(Node));
+    if(!tmp_ptr)
         return LIST_BAD_ALLOC;
-
-    NODS = ((Node*) temp_ptr) + 1; // shift for list header structure
     
+    if(NODS != nullptr)
+    {
+        memcpy(tmp_ptr, NODS, (CAP + 1) * sizeof(Node));
+        free(NODS);
+    }
+
+    NODS = tmp_ptr + 1; // shift for list header structure
+
     FREE = CAP;
     for(int iter = FREE; iter < new_cap; iter++)
     {
@@ -66,9 +73,29 @@ int list_ctor(List* list, int init_cap)
     assert(list);
     ASSERT(!NODS, LIST_REINIT);
 
-    NODS++; // shift for list header structure
-    ASSERT(list_resize_(list, init_cap) == 0, LIST_BAD_ALLOC);
+    if(init_cap < MIN_LIST_CAP)
+        init_cap = MIN_LIST_CAP;
 
+    // list_ctor() used list_resize_(), however it had to do NODS-- to create suitable
+    // pointer for list_resize_(). NODS-- appeared to be UB, because it used ariphmetic on 
+    // nullptr. Therefore initializing aligned_alloc() was made distinguished.
+
+    Node* tmp_ptr = (Node*) aligned_alloc(LIST_ALIGNMENT, (size_t) (init_cap + 1) * sizeof(Node));
+    if(!tmp_ptr)
+        return LIST_BAD_ALLOC;
+
+    NODS = tmp_ptr + 1; // shift for list header structure
+
+    FREE = CAP;
+    for(int iter = FREE; iter < init_cap; iter++)
+    {
+        NODS[iter].next = iter + 1;
+        NODS[iter].prev = LIST_INVLD_INDX;
+        // NODS[iter].data = {};
+    }
+    NODS[init_cap - 1].next = LIST_HEADER_POS;
+
+    CAP = init_cap;
     TAIL = -1;
     HEAD = -1;
     SIZE =  0;
