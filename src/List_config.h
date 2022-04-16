@@ -21,18 +21,10 @@ const int  LIST_CAP_MLTPLR = 2;
 //-----------------------------------------------------------------------------
 const size_t KEY_SIZE = 32;
 
-// Nodes alignment
-const size_t LIST_ALIGNMENT = 32;
-
-// Structure list_elem_t alligns on 32 bytes because of __m256i member =>
-// => (sizeof(list_elem_t) = 64).
-// Therefore Node also alligns on 32 bytes => sizeof(Node) = 96.
-typedef struct __attribute__((aligned(LIST_ALIGNMENT)))
+typedef struct
 {
-    __m256i key;
+    char key[KEY_SIZE] = {};
     ht_elem_t obj = {};
 } list_elem_t;
-
-// __attribute_alloc_align__; 
 
 #endif // LIST_CONFIG_H
