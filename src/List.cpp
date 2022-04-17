@@ -48,7 +48,7 @@ static int list_resize_(List* list, int new_cap)
     
     if(NODS != nullptr)
     {
-        memcpy(tmp_ptr, NODS, (CAP + 1) * sizeof(Node));
+        memcpy(tmp_ptr, NODS, ((size_t) CAP + 1) * sizeof(Node));
         free(NODS);
     }
 
